@@ -1,28 +1,37 @@
 using UnityEngine;
 using UnityEditor;
 
-// Source:
+// Based on:
 // https://web.archive.org/web/20130514114424/http://wiki.unity3d.com/index.php/FindMissingScripts
-// slightly edited by Joren Van Borm
+// modified by Joren Van Borm
 
-public class FindMissingScriptsRecursively : EditorWindow
+public static class FindMissingScriptsRecursively
 {
     static int go_count = 0, components_count = 0, missing_count = 0;
 
-    [MenuItem("Window/Argo's Grab Bag/Find Missing Scripts")] // standard grab bag location
-    [MenuItem("GameObject/Find Missing Scripts")] // adds to menu bar and context menu
-    public static void ShowWindow()
+    // validator function (menu item will be greyed out if this returns False)
+    [MenuItem("Tools/Argo's Grab Bag/Find Missing Scripts", validate = true)] // standard grab bag location
+    [MenuItem("GameObject/Find Missing Scripts", validate = true)] // adds to menu bar and context menu
+    static bool ValidateMenuItem()
     {
-        EditorWindow.GetWindow<FindMissingScriptsRecursively>();
+        return Selection.gameObjects.Length > 0;
     }
 
-    public void OnGUI()
+    [MenuItem("Tools/Argo's Grab Bag/Find Missing Scripts")] // standard grab bag location
+    [MenuItem("GameObject/Find Missing Scripts")] // adds to menu bar and context menu
+    static void FindMissingScripts(MenuCommand command)
     {
-        if (GUILayout.Button("Find Missing Scripts in selected GameObjects"))
+        // When invoked from menu bar, FindInSelected() runs once without context.
+        // When invoked from context menu, it runs once for each selected item (setting it as its context)
+
+        // only run the search once, across all selected objects
+        // (do NOT compare to Selection.activeGameObject as it may be null)
+        if (command == null || command.context == Selection.gameObjects[0])
         {
             FindInSelected();
         }
     }
+
     private static void FindInSelected()
     {
         GameObject[] go = Selection.gameObjects;
@@ -33,7 +42,7 @@ public class FindMissingScriptsRecursively : EditorWindow
         {
             FindInGO(g);
         }
-        Debug.Log(string.Format("Searched {0} GameObjects, {1} components, found {2} missing", go_count, components_count, missing_count));
+        Debug.Log(string.Format("Searched {0} GameObjects, {1} components, found {2} missing scripts", go_count, components_count, missing_count));
     }
 
     private static void FindInGO(GameObject g)
