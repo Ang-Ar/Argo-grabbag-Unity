@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Overlays;
 using UnityEditor.SceneManagement;
@@ -31,12 +32,14 @@ public static class EditorSceneSwitcher
         // find all scenes in the Assets folder
         var sceneGuids = AssetDatabase.FindAssets("t:Scene", new[] { "Assets" });
 
-        foreach (var sceneGuid in sceneGuids)
-        {
-            var scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
-            var sceneAsset = AssetDatabase.LoadAssetAtPath(scenePath, typeof(SceneAsset));
-            ScenePaths.Add(scenePath);
-        }
+        // translate asset GUIDs to paths & sort in a files-then-subfolders style
+        var newScenePaths = sceneGuids
+            .Select(guid => AssetDatabase.GUIDToAssetPath(guid))
+            .OrderBy(x => Path.GetDirectoryName(x))
+            .ThenBy(x => Path.GetFileName(x));
+
+        // add new scenes
+        ScenePaths.AddRange(newScenePaths);
     }
 }
 
@@ -158,11 +161,19 @@ public class SceneDropdown : EditorToolbarDropdown
     private void ToggleDropdown()
     {
         var menu = new GenericMenu();
+        string prevDir = "";
         foreach (var scenePath in EditorSceneSwitcher.ScenePaths)
         {
             var sceneName = Path.GetFileNameWithoutExtension(scenePath);
-            menu.AddItem(new GUIContent(sceneName), text == sceneName,
+            var sceneDir = Path.GetDirectoryName(scenePath);
+            if (sceneDir != prevDir)
+            {
+                menu.AddSeparator("");
+                menu.AddDisabledItem(new GUIContent(sceneDir));
+            }
+            menu.AddItem(new GUIContent(sceneName), scenePath == SceneManager.GetActiveScene().path,
                 () => OnDropdownItemSelected(sceneName, scenePath));
+            prevDir = sceneDir;
         }
 
         menu.DropDown(worldBound);
