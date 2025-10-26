@@ -33,7 +33,7 @@ public static class FindMissingScriptsRecursively
 
         // only run the search once, across all selected objects
         // (do NOT compare to Selection.activeGameObject as it may be null)
-        if (command == null || command.context == Selection.gameObjects[0])
+        if (command.context == null || command.context == Selection.gameObjects[0])
         {
             FindInSelected();
         }
